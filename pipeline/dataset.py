@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import traceback
 import tensorflow as tf
 import tensorflow_addons as tfa
@@ -7,6 +8,8 @@ import cv2
 from keras import layers
 from keras.preprocessing.image import ImageDataGenerator
 from random import randint
+from random import randrange
+from random import random
 
 
 class DataAugmentation:
@@ -15,10 +18,6 @@ class DataAugmentation:
     dropout_prob = 0.05
     gaussian_blur_prob = 0.05
     cutout_prob = 0.05
-    # ImageDataGenerator built-in methods. We discard the ones not listed here.
-    rotation_range = 12,
-    width_shift_range = 0.3
-    height_shift_range = 0.3
 
     def __init__(self):
         self.enabled = True
@@ -39,8 +38,8 @@ class DataAugmentation:
         return image
 
     def add_noise(self, image):
-        rnds_noise = tf.random.uniform((1, 2), minval=0, maxval=0.04)
-        image = tf.keras.layers.GaussianNoise(rnds_noise[0][1])(image, training=True)
+        sdev = 0 + (random() * (0.05 - 0))
+        image = layers.GaussianNoise(stddev=sdev)(image, training=True)
         return image
 
     def dropout(self, image):
@@ -81,9 +80,14 @@ class DataProvider:
     _train_generator: ImageDataGenerator = None
     _val_generator: ImageDataGenerator = None
 
+    # ImageDataGenerator built-in methods. We discard the ones not listed here.
+    rotation_range = 12,
+    width_shift_range = 0.3
+    height_shift_range = 0.3
+
     def get_train_generator(self):
         self._train_generator = ImageDataGenerator(
-                        rescale=1.0/255.0,
+
                         preprocessing_function=self._preprocess_img
                     )
         return self._train_generator.flow_from_directory(
@@ -97,6 +101,7 @@ class DataProvider:
         )
 
     def _preprocess_img(self, image):
+        image = image / 255
         image = tf.image.resize(image, [128, 128])
         image = self.da.augment_image(image)
         return image
@@ -104,6 +109,9 @@ class DataProvider:
     def get_val_generator(self):
         self._val_generator = ImageDataGenerator(
                         rescale=1.0/255.0,
+                        rotation_range=self.rotation_range,
+                        width_shift_range=self.width_shift_range,
+                        height_shift_range=self.height_shift_range,
                         preprocessing_function=self._preprocess_img_val
                     )
         return self._val_generator.flow_from_directory(
