@@ -87,7 +87,9 @@ class DataProvider:
 
     def get_train_generator(self):
         self._train_generator = ImageDataGenerator(
-
+                        rotation_range=self.rotation_range,
+                        width_shift_range=self.width_shift_range,
+                        height_shift_range=self.height_shift_range,
                         preprocessing_function=self._preprocess_img
                     )
         return self._train_generator.flow_from_directory(
@@ -109,9 +111,6 @@ class DataProvider:
     def get_val_generator(self):
         self._val_generator = ImageDataGenerator(
                         rescale=1.0/255.0,
-                        rotation_range=self.rotation_range,
-                        width_shift_range=self.width_shift_range,
-                        height_shift_range=self.height_shift_range,
                         preprocessing_function=self._preprocess_img_val
                     )
         return self._val_generator.flow_from_directory(

@@ -36,7 +36,7 @@ def baseline_skconn_model():
     x = layers.BatchNormalization()(x)
     x = layers.ReLU()(x)
 
-    decoded = layers.Conv2D(1, (3,3), activation='sigmoid', padding='same', name='decoder')(x)
+    decoded = layers.Conv2D(1, (3,3), activation='linear', padding='same', name='decoder')(x)
 
     autoencoder = keras.Model(input_img, decoded, name="baseline_with_skconn")
     return autoencoder
