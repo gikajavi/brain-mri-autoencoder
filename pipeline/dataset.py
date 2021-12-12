@@ -60,8 +60,8 @@ class DataAugmentation:
         image = image.numpy()
         x_start = randint(0, 108)
         y_start = randint(0, 108)
-        w = randint(10, 20)
-        h = randint(10, 20)
+        w = randint(10, 40)
+        h = randint(10, 40)
         x_end = x_start + w
         y_end = y_start + h
         image = cv2.rectangle(image, (x_start, y_start), (x_end, y_end), (0, 0, 0), -1)
@@ -81,7 +81,7 @@ class DataProvider:
     _val_generator: ImageDataGenerator = None
 
     # ImageDataGenerator built-in methods. We discard the ones not listed here.
-    rotation_range = 12,
+    rotation_range = 12
     width_shift_range = 0.3
     height_shift_range = 0.3
 
