@@ -10,48 +10,54 @@ from keras import layers
 from keras.preprocessing.image import ImageDataGenerator
 from random import randint
 import pickle
-from dataset import DataAugmentation
-from dataset import DataProvider
+from dataset import DataGenerator
 
 
 class Experiment:
-    name = ''
-    model: keras.Model = None
-    da: DataAugmentation = None
-    da_enabled = True
-    _data_provider: DataProvider = None
-    skull_stripped = True
-    path_to_dataset = None
-    path_to_results = None
-    epochs = 50
-    es_patience = 5
-    batch_size = 128
-    optimizer = "Adam"
-    loss = "mse"
-    metrics = "accuracy"
     _history = None
 
-    def __init__(self):
-        self.name = 'Experiment'
-        self.da = DataAugmentation()
-        self.da.enabled = self.da_enabled
-        # Paths assuming a kaggle environment
-        self.path_to_dataset = '../input/ixit1slices/IXI-T1-slices'
-        self.path_to_results = './'
+    def __init__(self, name='Experiment', model: keras.Model = None, da_enabled=True, train_gen=None, val_gen=None,
+                 skull_stripped=True, path_to_dataset='', path_to_results='', epochs=25, es_patience=5,
+                 batch_size=128, optimizer="Adam", loss="mse", metrics="mse"):
+        self.name = name
+        self.model = model
+        self.da_enabled = da_enabled
+        self.train_gen = train_gen
+        self.val_gen = val_gen
+        self.skull_stripped = skull_stripped
+        self.path_to_dataset = path_to_dataset
+        self.path_to_results = path_to_results,
+        self.epochs = epochs
+        self.es_patience = es_patience
+        self.batch_size = batch_size
+        self.optimizer = optimizer
+        self.loss = loss
+        self.metrics = metrics
 
-    def get_data_provider(self):
-        if self._data_provider is None:
-            self._data_provider = DataProvider()
-            self._data_provider.batch_size = self.batch_size
-        return self._data_provider
+        if self.path_to_dataset == '':
+            self.path_to_dataset = '../input/ixit1slices/IXI-T1-slices'
+        if self.path_to_results == '':
+            self.path_to_results = './'
+
+        path_to_slices = '/skull-stripped' if self.skull_stripped else '/full'
+        path_to_slices = self.path_to_dataset + path_to_slices
+        path_to_train_slices = path_to_slices + '/train'
+        path_to_val_slices = path_to_slices + '/val'
+
+        self.train_gen = DataGenerator(base_dir=path_to_train_slices, batch_size=self.batch_size,
+                                       Augment=self.da_enabled)
+
+        self.val_gen = DataGenerator(base_dir=path_to_val_slices, batch_size=self.batch_size,
+                                     Augment=self.da_enabled)
+
 
     def get_name(self):
         """
         The name of this experiment, which depends on the model's name and some of the experiment parameters
         :return:
         """
-        da_config: str = 'with_da' if self._data_provider.da.enabled else 'NO_da'
-        return f'{self.model.name}_ep{self.epochs}_bs{self.batch_size}_{da_config}'
+        da_config: str = 'with_da' if self.da_enabled else 'NO_da'
+        return f'{self.name}_{self.model.name}_ep{self.epochs}_bs{self.batch_size}_{da_config}'
 
     def start(self):
         """
@@ -62,12 +68,6 @@ class Experiment:
             print('Experiment started')
             if self.model is None:
                 raise Exception("No Model was provided")
-
-            print("Configuring data paths and augmentation")
-            data_provider = self.get_data_provider()
-            data_provider.da = self.da
-            path_to_slices = '/skull-stripped' if self.skull_stripped else '/full'
-            data_provider.path_to_dataset = self.path_to_dataset + path_to_slices
 
             print("Model is about to start training")
             self.fit_model()
@@ -89,10 +89,10 @@ class Experiment:
         es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', patience=self.es_patience, verbose=1,
                                            restore_best_weights=True)
 
-        self._history = self.model.fit(self._data_provider.get_train_generator(),
+        self._history = self.model.fit(self.train_gen,
                                   epochs=self.epochs,
                                   batch_size=self.batch_size,
-                                  validation_data=self._data_provider.get_val_generator(),
+                                  validation_data=self.val_gen,
                                   callbacks=[tensorboard_callback, es])
 
 
