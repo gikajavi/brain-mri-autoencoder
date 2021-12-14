@@ -1,44 +1,82 @@
-import pandas as pd
 import numpy as np
+import glob
 import traceback
 import tensorflow as tf
 import tensorflow_addons as tfa
+import random
 import keras
-import cv2
 from keras import layers
-from keras.preprocessing.image import ImageDataGenerator
-from random import randint
-from random import randrange
-from random import random
+import imageio
 
 
-class DataAugmentation:
-    enabled = True
-    add_noise_prob = 0.05
-    dropout_prob = 0.05
-    gaussian_blur_prob = 0.05
-    cutout_prob = 0.05
+class DataGenerator(tf.keras.utils.Sequence):
+    """
+    Custom class to provide data to keras models
+    AugmentationPolicy: can be => 'instance', 'batch'
+    """
+    def __init__(self, base_dir='.', batch_size=128, Shuffle=True, Augment=True, AugmentationPolicy='instance'):
+        self.batch_size = batch_size
+        self.base_dir = base_dir
+        self.shuffle = Shuffle
+        self.Augment = Augment
+        self.AugmentationPolicy = AugmentationPolicy
+        self.files = glob.glob(f'{base_dir}/*.png')
+        if self.shuffle:
+            random.shuffle(self.files)
+        print(f'Data generator on {base_dir}, found {len(self.files)} PNG files')
 
-    def __init__(self):
-        self.enabled = True
+    def __len__(self):
+        return len(self.files) // self.batch_size
+        # return math.ceil(len(self.files) / self.batch_size)
 
-    def augment_image(self, image):
-        if not self.enabled:
-            return image
-        # We apply each filter 20% of the times, so, since we use up to 4 filters, 20% of times
-        # no filters will be applied
-        if randint(1, 5) == 1:
+    def __getitem__(self, index):
+        Y = []
+        for i in range(index * self.batch_size, index * self.batch_size + self.batch_size):
+            image_path = self.files[i]
+            im = imageio.imread(image_path)
+            im = im.astype(np.float32)
+            im = im / 255
+            im = im.reshape(256, 256, 1)
+            im = tf.image.resize(im, [128, 128])
+            Y.append(im)
+
+        # Convert Y to numpy before performing augmentation
+        Y = np.array(Y)
+
+        # Augmentation according to policy
+        if self.Augment:
+            if self.AugmentationPolicy == 'instance':
+                X = []
+                for i in range(0, len(Y)):
+                    augmented_y = self._augment(np.array([Y[i]]))
+                    X.append(augmented_y[0])
+                X = np.array(X)
+            else:
+                # All the images in batch will have the same augmentations
+                X = Y
+                X = self._augment(X)
+
+        return X, Y
+
+    #     def on_epoch_end(self):
+    #         self.indexes = np.arange(len(self.list_IDs))
+    #         if self.shuffle == True:
+    #             np.random.shuffle(self.indexes)
+
+    def _augment(self, image):
+        # Each filter is applied with a probability of 25%, except coutout which is applied half of the times
+        if random.randint(1, 4) == 1:
             image = self.add_noise(image)
-        if randint(1, 5) == 1:
+        if random.randint(1, 4) == 1:
             image = self.dropout(image)
-        if randint(1, 5) == 1:
+        if random.randint(1, 4) == 1:
             image = self.gaussian_blur(image)
-        if randint(1, 5) == 1:
+        if random.randint(1, 2) == 1:
             image = self.cutout(image)
         return image
 
     def add_noise(self, image):
-        sdev = 0 + (random() * (0.05 - 0))
+        sdev = 0 + (random.random() * (0.05 - 0))
         image = layers.GaussianNoise(stddev=sdev)(image, training=True)
         return image
 
@@ -57,77 +95,20 @@ class DataAugmentation:
         return image
 
     def cutout(self, image):
-        image = image.numpy()
-        x_start = randint(0, 108)
-        y_start = randint(0, 108)
-        w = randint(10, 40)
-        h = randint(10, 40)
-        x_end = x_start + w
-        y_end = y_start + h
-        image = cv2.rectangle(image, (x_start, y_start), (x_end, y_end), (0, 0, 0), -1)
-        image = tf.convert_to_tensor(image)
+        w = tf.random.uniform((), minval=10, maxval=20, dtype=tf.dtypes.int32)
+        h = tf.random.uniform((), minval=10, maxval=20, dtype=tf.dtypes.int32)
+        x = tf.random.uniform((), minval=20, maxval=105, dtype=tf.dtypes.int32)
+        y = tf.random.uniform((), minval=40, maxval=105, dtype=tf.dtypes.int32)
+
+        if w % 2 != 0:
+            w += 1 if bool(random.getrandbits(1)) else -1
+        if h % 2 != 0:
+            h += 1 if bool(random.getrandbits(1)) else -1
+
+        # image = tfa.image.random_cutout(image, mask_size=(w,h), constant_values=0)
+        image = tfa.image.cutout(image,
+                                 mask_size=(w, h),
+                                 offset=(x, y),
+                                 constant_values=0
+                                 )
         return image
-
-
-class DataProvider:
-    """
-    This class is basically a wrapper of keras ImageDataGenerator class, implementing a preprocess function
-    for adding some extra filters to the pipeline
-    """
-    da: DataAugmentation = None
-    path_to_dataset = None
-    batch_size = None
-    _train_generator: ImageDataGenerator = None
-    _val_generator: ImageDataGenerator = None
-
-    # ImageDataGenerator built-in methods. We discard the ones not listed here.
-    rotation_range = 12
-    width_shift_range = 0.3
-    height_shift_range = 0.3
-
-    def get_train_generator(self):
-        self._train_generator = ImageDataGenerator(
-                        rotation_range=self.rotation_range,
-                        width_shift_range=self.width_shift_range,
-                        height_shift_range=self.height_shift_range,
-                        preprocessing_function=self._preprocess_img
-                    )
-        return self._train_generator.flow_from_directory(
-            directory=self.path_to_dataset,
-            color_mode="grayscale",
-            target_size=(128, 128),
-            batch_size=self.batch_size,
-            class_mode='input',
-            classes=['train'],
-            shuffle=True
-        )
-
-    def _preprocess_img(self, image):
-        image = image / 255
-        image = tf.image.resize(image, [128, 128])
-        image = self.da.augment_image(image)
-        return image
-
-    def get_val_generator(self):
-        self._val_generator = ImageDataGenerator(
-                        rescale=1.0/255.0,
-                        preprocessing_function=self._preprocess_img_val
-                    )
-        return self._val_generator.flow_from_directory(
-            directory=self.path_to_dataset,
-            color_mode="grayscale",
-            target_size=(128, 128),
-            batch_size=self.batch_size,
-            class_mode='input',
-            classes=['val'],
-            shuffle=True
-        )
-
-    def _preprocess_img_val(self, image):
-        """
-        In validation set, the only operation to perform is resizing image
-        :param image:
-        :return:
-        """
-        resized_image = tf.image.resize(image, [128, 128])
-        return resized_image
