@@ -6,6 +6,7 @@ import random
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import math
+from keras import layers
 
 
 def get_random_images(mode="skull-stripped", set='test', n=20):
@@ -49,17 +50,36 @@ def show_img_grid(imgs, ncols=5, show_axis=False):
     plt.show()
 
 
-def predict_imgs(inputs, model):
+def predict_imgs(inputs, model, augmentation=[]):
     """
     predicts the input images and returns a list with pairs of images in consecutive order
     to easily plot them
     """
-    predicted = model.predict(inputs)
-    outputs = [None] * (len(inputs) * 2)
-    outputs[::2] = inputs
-    outputs[1::2] = predicted
-    return outputs
-
+    if len(augmentation) > 0:
+        augment = Augmentation()
+        augmented = inputs
+        if "noise" in augmentation:
+            augmented = augment.add_noise(augmented)
+        if "blur" in augmentation:
+            augmented = augment.gaussian_blur(augmented)
+        if "dropout" in augmentation:
+            augmented = augment.dropout(augmented)
+        if "cutout" in augmentation:
+            augmented = augment.cutout(augmented)
+        if "random" in augmentation:
+            augmented = augment.random(augmented)
+        predicted = model.predict(augmented)
+        outputs = [None] * (len(inputs) * 3)
+        outputs[::3] = inputs
+        outputs[1::3] = augmented
+        outputs[2::3] = predicted
+        return outputs
+    else:
+        predicted = model.predict(inputs)
+        outputs = [None] * (len(inputs) * 2)
+        outputs[::2] = inputs
+        outputs[1::2] = predicted
+        return outputs
 
 # to run in Kaggle notebook:
 # imgs = get_random_images(n=8)
