@@ -63,38 +63,38 @@ class DataGenerator(tf.keras.utils.Sequence):
     #         if self.shuffle == True:
     #             np.random.shuffle(self.indexes)
 
-    def _augment(self, image):
-        # Each filter is applied with a probability of 25%, except coutout which is applied half of the times
+    def _augment(self, images):
+        # Each filter is applied with a probability of 25%, except cutout which is applied half of the times
         if random.randint(1, 4) == 1:
-            image = self.add_noise(image)
+            images = self.add_noise(images)
         if random.randint(1, 4) == 1:
-            image = self.dropout(image)
+            images = self.dropout(images)
         if random.randint(1, 4) == 1:
-            image = self.gaussian_blur(image)
+            images = self.gaussian_blur(images)
         if random.randint(1, 2) == 1:
-            image = self.cutout(image)
-        return image
+            images = self.cutout(images)
+        return images
 
-    def add_noise(self, image):
+    def add_noise(self, images):
         sdev = 0 + (random.random() * (0.05 - 0))
-        image = layers.GaussianNoise(stddev=sdev)(image, training=True)
-        return image
+        images = layers.GaussianNoise(stddev=sdev)(images, training=True)
+        return images
 
-    def dropout(self, image):
+    def dropout(self, images):
         rnds_noise = tf.random.uniform((1, 2), minval=0, maxval=0.04)
-        image = tf.nn.dropout(image, rnds_noise[0][0])
-        return image
+        images = tf.nn.dropout(images, rnds_noise[0][0])
+        return images
 
     # https://www.tensorflow.org/addons/api_docs/python/tfa/image/gaussian_filter2d
-    def gaussian_blur(self, image):
-        image = tfa.image.gaussian_filter2d(image,
-                                            filter_shape=[4, 4],
-                                            sigma=0.8,
-                                            constant_values=0,
-                                            )
-        return image
+    def gaussian_blur(self, images):
+        images = tfa.image.gaussian_filter2d(images,
+                                             filter_shape=[4, 4],
+                                             sigma=0.8,
+                                             constant_values=0,
+                                             )
+        return images
 
-    def cutout(self, image):
+    def cutout(self, images):
         w = tf.random.uniform((), minval=10, maxval=20, dtype=tf.dtypes.int32)
         h = tf.random.uniform((), minval=10, maxval=20, dtype=tf.dtypes.int32)
         x = tf.random.uniform((), minval=20, maxval=105, dtype=tf.dtypes.int32)
@@ -106,9 +106,9 @@ class DataGenerator(tf.keras.utils.Sequence):
             h += 1 if bool(random.getrandbits(1)) else -1
 
         # image = tfa.image.random_cutout(image, mask_size=(w,h), constant_values=0)
-        image = tfa.image.cutout(image,
-                                 mask_size=(w, h),
-                                 offset=(x, y),
-                                 constant_values=0
-                                 )
-        return image
+        images = tfa.image.cutout(images,
+                                  mask_size=(w, h),
+                                  offset=(x, y),
+                                  constant_values=0
+                                  )
+        return images
