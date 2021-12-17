@@ -71,8 +71,6 @@ class Experiment:
             print(traceback.format_exc())
 
     def fit_model(self):
-        # TODO: params should be configurable. accuracy does not make sense for this tasks. We should
-        # use SSIM or something more appropriate
         self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=self.metrics)
 
         # Callbacks
