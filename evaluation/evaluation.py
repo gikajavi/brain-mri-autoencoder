@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pandas as pd
 import glob
 import imageio
 import random
@@ -7,6 +8,14 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import math
 from keras import layers
+import tensorflow_addons as tfa
+import pickle
+
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', 1500)
+pd.set_option('display.colheader_justify', 'left')
+pd.set_option('display.precision', 3)
 
 
 def get_random_images(mode="skull-stripped", set='test', n=20):
@@ -81,6 +90,30 @@ def predict_imgs(inputs, model, augmentation=[]):
         outputs[1::2] = predicted
         return outputs
 
+
+# Els historials van ser emmagatzemats al finalitzar cada entrenament en diferents sessions de Kaggle.
+# Ara en recuperem alguns per mostrar les gràfiques.
+def show_history_data(path, show_table=True, plot=True):
+    with open(path, "rb") as input_file:
+        history = pickle.load(input_file)
+
+    if show_table:
+        l = []
+        for i in range(0, len(history['loss'])):
+            l.append({'Epoch': i + 1, 'loss': history['loss'][i], 'val_loss': history['val_loss'][i]})
+        print(pd.DataFrame(l))
+
+    if plot:
+        plt.style.use("ggplot")
+        plt.plot(np.arange(0, len(history['loss'])), history["loss"], label="train")
+        plt.plot(np.arange(0, len(history['val_loss'])), history["val_loss"], label="val")
+        plt.title("Loss")
+        plt.xlabel("Epoch #")
+        plt.ylabel("Loss")
+        plt.legend(loc="upper right")
+        plt.show()
+
+
 # to run in Kaggle notebook:
 # imgs = get_random_images(n=8)
 # show_img_grid(imgs, ncols=4)
@@ -89,3 +122,18 @@ def predict_imgs(inputs, model, augmentation=[]):
 # model = load_model(path_to_model)
 # outputs = predict_imgs(imgs, model)
 # show_img_grid(outputs, ncols=4)
+
+
+# Testing model trained with full-skull images, during 25 epochs, activation linear
+# from keras.models import load_model
+# path_to_model = "../input/fullskullresnet-sconn-25epoch-es5-activa-linear/full-skull-resnet_sconn_25epoch_es5_activation_linear/full-skull-resnet_sconn_25epoch_es5_activation_linear.h5"
+# model = load_model(path_to_model)
+# outputs = predict_imgs(imgs, model, ['blur'])
+# show_img_grid(outputs, ncols=3)
+
+
+# Load and show history data
+# path = '../input/fullskullresnet-sconn-25epoch-es5-activa-linear/full-skull-resnet_sconn_25epoch_es5_activation_linear/full-skull-resnet_sconn_25epoch_es5_activation_linear.history'
+# show_history_data(path)
+# path = '../input/newgenerator/model_baseline_10epoch_es20_activation_sigmoid.h12.history'
+# show_history_data(path)
