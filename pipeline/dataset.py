@@ -14,16 +14,33 @@ class DataGenerator(tf.keras.utils.Sequence):
     Custom class to provide data to keras models
     AugmentationPolicy: can be => 'instance', 'batch'
     """
-    def __init__(self, base_dir='.', batch_size=128, Shuffle=True, Augment=True, AugmentationPolicy='instance'):
+    def __init__(self, base_dir='.', batch_size=128, Shuffle=True, Augment=True, AugmentationPolicy='instance',
+                 brain_amount=15):
         self.batch_size = batch_size
         self.base_dir = base_dir
         self.shuffle = Shuffle
         self.Augment = Augment
         self.AugmentationPolicy = AugmentationPolicy
+        self.brain_amount = brain_amount
+
         self.files = glob.glob(f'{base_dir}/*.png')
+        if self.brain_amount is not None:
+            self._filter_according_to_bamount()
+
         if self.shuffle:
             random.shuffle(self.files)
         print(f'Data generator on {base_dir}, found {len(self.files)} PNG files')
+
+
+    def _filter_according_to_bamount(self):
+        filtered = []
+        for file in self.files:
+            ta = int(file.split('.')[-2].replace('ta', ''))
+            # ta is the number of pixels belonging to brain tissue in the original 256x256 slice
+            percentage = ta/(256*256)*100
+            if percentage > self.brain_amount:
+                filtered.append(file)
+        self.files = filtered
 
     def __len__(self):
         return len(self.files) // self.batch_size
