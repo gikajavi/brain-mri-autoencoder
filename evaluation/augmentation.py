@@ -14,7 +14,7 @@ class Augmentation():
             images = self.dropout(images)
         if random.randint(1, 4) == 1:
             images = self.gaussian_blur(images)
-        if random.randint(1, 1) == 1:
+        if random.randint(1, 2) == 1:
             images = self.cutout(images)
         return images
 
