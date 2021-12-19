@@ -8,7 +8,6 @@ class Augmentation():
     Helper to apply some filters to images
     """
     def random(self, images):
-        # Each filter is applied with a probability of 25%, except cutout which is applied half of the times
         if random.randint(1, 4) == 1:
             images = self.add_noise(images)
         if random.randint(1, 4) == 1:
