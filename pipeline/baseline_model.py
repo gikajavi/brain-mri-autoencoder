@@ -3,6 +3,10 @@ import keras
 from keras import layers
 
 def baseline_model():
+    """
+    First attempt to use as baseline. This model is inneficient and does not lern much compored to other approaches.
+    The learnt slices are quite blurry
+    """
     input_img = keras.Input(shape=(128, 128, 1))
     x = layers.Conv2D(48, (3, 3), activation='relu', padding='same')(input_img)
     x = layers.MaxPooling2D((2, 2))(x)

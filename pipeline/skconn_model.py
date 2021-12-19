@@ -6,6 +6,7 @@ from keras import layers
 def skconn_model():
     """
     A model similar to the baseline but using the skip long connections approach
+    The results are quite good. Qualitatively, output images are very simular to inputs
     :return:
     """
     input_img = keras.Input(shape=(128, 128, 1))

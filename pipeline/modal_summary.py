@@ -5,7 +5,8 @@ import skconn_model
 
 def get_summary():
     model = baseline_model()
-    # model = resnet_sconns_model()
+    model = resnet_sconns_model.resnet_model().get_model()
+    model = resnet_sconns_model()
     # model = skconn_model()
     model.summary()
 
