@@ -12,7 +12,7 @@ import tensorflow_addons as tfa
 
 class DaLayer(Layer):
     """
-    Custom Keras layer to perform some extra Data Augmentation operatoins
+    Custom Keras layer to perform some extra Data Augmentation operations
     This layer should be inserted at the beginning of the models, just after the input layer
     It's constrained to this project and assumes (128,128,1) as input shape
     """

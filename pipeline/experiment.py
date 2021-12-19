@@ -2,7 +2,7 @@ import traceback
 import tensorflow as tf
 import keras
 import pickle
-from dataset import DataGenerator
+from data_generator import DataGenerator
 
 
 class Experiment:

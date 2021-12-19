@@ -3,9 +3,9 @@ import keras
 from keras import layers
 
 
-def baseline_skconn_model():
+def skconn_model():
     """
-    A model like the baseline but with skip connections
+    A model similar to the baseline but using the skip long connections approach
     :return:
     """
     input_img = keras.Input(shape=(128, 128, 1))
